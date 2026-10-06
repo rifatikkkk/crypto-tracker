@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import { app } from "./app.ts";
+import { db } from "./db/database.ts";
 
 dotenv.config();
 
@@ -15,6 +16,7 @@ const server = app.listen(port, () => {
 
 function shutdown(): void {
   server.close(() => {
+    db.close();
     process.exit(0);
   });
 }
