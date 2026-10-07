@@ -1,4 +1,4 @@
-import { RequestHandler } from "express";
+import type { RequestHandler } from "express";
 
 export const requireApiKey: RequestHandler = (request, response, next) => {
   const expectedKey = process.env.API_KEY;
