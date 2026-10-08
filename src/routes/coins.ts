@@ -8,6 +8,7 @@ import {
   updateCoin,
 } from "../repositories/coin.ts";
 import { parseCoinInput, parseId } from "../validation/coin.ts";
+import { getCurrentPrice } from "../clients/coinmarketcap.ts";
 
 export const coinsRouter = Router();
 
@@ -87,4 +88,34 @@ coinsRouter.delete("/:id", (request, response) => {
   }
 
   response.status(204).send();
+});
+
+coinsRouter.get("/:id/price", async (request, response) => {
+  const id = parseId(request.params.id);
+
+  if (id === null) {
+    response.status(400).json({ error: "Invalid coin ID" });
+    return;
+  }
+
+  if (Object.keys(request.query).length > 0) {
+    response.status(400).json({
+      error: "Query parameters are not supported",
+    });
+    return;
+  }
+
+  const coin = getCoin(id);
+
+  if (!coin) {
+    response.status(404).json({ error: "Coin not found" });
+    return;
+  }
+
+  const price = await getCurrentPrice(coin.cmcId);
+
+  response.json({
+    coinId: coin.id,
+    ...price,
+  });
 });
