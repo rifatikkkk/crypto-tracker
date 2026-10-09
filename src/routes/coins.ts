@@ -9,6 +9,7 @@ import {
 } from "../repositories/coin.ts";
 import { parseCoinInput, parseId } from "../validation/coin.ts";
 import { getCurrentPrice } from "../clients/coinmarketcap.ts";
+import { listPriceHistory } from "../repositories/price-history.ts";
 
 export const coinsRouter = Router();
 
@@ -118,4 +119,47 @@ coinsRouter.get("/:id/price", async (request, response) => {
     coinId: coin.id,
     ...price,
   });
+});
+
+coinsRouter.get("/:id/history", (request, response) => {
+  const id = parseId(request.params.id);
+
+  if (id === null) {
+    response.status(400).json({ error: "Invalid coin ID" });
+    return;
+  }
+
+  const queryKeys = Object.keys(request.query);
+
+  if (queryKeys.some((key) => key !== "limit")) {
+    response.status(400).json({ error: "Unsupported query parameter" });
+    return;
+  }
+
+  let limit = 100;
+
+  if (request.query.limit !== undefined) {
+    const value = request.query.limit;
+
+    if (typeof value !== "string" || !/^[1-9]\d*$/.test(value)) {
+      response.status(400).json({ error: "Invalid limit" });
+      return;
+    }
+
+    limit = Number(value);
+
+    if (!Number.isSafeInteger(limit) || limit > 100) {
+      response.status(400).json({ error: "Invalid limit" });
+      return;
+    }
+  }
+
+  const coin = getCoin(id);
+
+  if (!coin) {
+    response.status(404).json({ error: "Coin not found" });
+    return;
+  }
+
+  response.json(listPriceHistory(coin.id, limit));
 });

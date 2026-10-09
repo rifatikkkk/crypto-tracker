@@ -32,4 +32,7 @@ db.exec(`
 
     CREATE INDEX IF NOT EXISTS idx_price_history_coin_time 
         ON price_history (coin_id, recorded_at DESC);
+
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_price_history_unique_snapshot
+        ON price_history (coin_id, currency, recorded_at)
     `);
