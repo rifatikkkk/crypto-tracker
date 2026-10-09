@@ -19,18 +19,17 @@ const errorHandler: ErrorRequestHandler = (error, _request, response, next) => {
     return;
   }
 
-  if (isHttpError(error)) {
-    response.status(error.status).json({ error: error.message });
-    return;
-  }
-
   if (error instanceof SyntaxError && "body" in error) {
     response.status(400).json({ error: "Invalid JSON" });
     return;
   }
 
-  console.error(error);
+  if (isHttpError(error)) {
+    response.status(error.status).json({ error: error.message });
+    return;
+  }
 
+  console.error(error);
   response.status(500).json({ error: "Internal server error" });
 };
 

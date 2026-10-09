@@ -141,3 +141,21 @@ test("does not duplicate the same provider snapshot", () => {
 
   expect(row.count).toBe(1);
 });
+
+test("deleting a coin deletes its saved prices", async () => {
+  savePrice(coin.id, {
+    cmcId: 1,
+    symbol: "BTC",
+    currency: "USD",
+    price: "100",
+    updatedAt: "2026-10-09T10:00:00.000Z",
+  });
+
+  const response = await request(app).delete(`/coins/${coin.id}`).set(headers);
+
+  expect(response.status).toBe(204);
+
+  const row = db.prepare("SELECT COUNT(*) AS count FROM price_history").get();
+
+  expect(row.count).toBe(0);
+});
