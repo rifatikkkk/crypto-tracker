@@ -157,3 +157,47 @@ test("POST /coins: rejects a duplicate CoinMarketCap ID", async () => {
 
   expect(response.status).toBe(409);
 });
+
+test("POST /coins rejects malformed JSON", async () => {
+  const response = await request(app)
+    .post("/coins")
+    .set(authorized())
+    .set("Content-Type", "application/json")
+    .send('{"cmcId":');
+
+  expect(response.status).toBe(400);
+  expect(response.body).toEqual({ error: "Invalid JSON" });
+});
+
+test("PATCH /coins/:id rejects another coin's CMC ID", async () => {
+  const first = await request(app)
+    .post("/coins")
+    .set(authorized())
+    .send(bitcoin);
+
+  await request(app).post("/coins").set(authorized()).send({
+    cmcId: 1027,
+    symbol: "ETH",
+    name: "Ethereum",
+  });
+
+  const response = await request(app)
+    .patch(`/coins/${first.body.id}`)
+    .set(authorized())
+    .send({
+      cmcId: 1027,
+      symbol: "ETH",
+      name: "Ethereum",
+    });
+
+  expect(response.status).toBe(409);
+});
+
+test.each(["0", "-1", "abc", "9007199254740992"])(
+  "GET /coins/:id rejects invalid ID %s",
+  async (id) => {
+    const response = await request(app).get(`/coins/${id}`).set(authorized());
+
+    expect(response.status).toBe(400);
+  },
+);

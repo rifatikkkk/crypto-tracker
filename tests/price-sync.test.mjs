@@ -100,3 +100,25 @@ test("starts immediately and schedules the next cycle", async () => {
     jest.useRealTimers();
   }
 });
+
+test("reports a database read error without crashing", async () => {
+  const onError = jest.fn();
+  const getCurrentPrice = jest.fn();
+  const savePrice = jest.fn();
+
+  const sync = createPriceSync(60000, {
+    listCoins: () => {
+      throw new Error("Database unavailable");
+    },
+    getCurrentPrice,
+    savePrice,
+    onError,
+  });
+
+  await sync.runOnce();
+
+  expect(onError).toHaveBeenCalledTimes(1);
+  expect(onError.mock.calls[0][0]).toBeNull();
+  expect(getCurrentPrice).not.toHaveBeenCalled();
+  expect(savePrice).not.toHaveBeenCalled();
+});

@@ -1,4 +1,3 @@
-import dotenv from "dotenv";
 import { app } from "./app.ts";
 import { db } from "./db/database.ts";
 import { createPriceSync } from "./jobs/price-sync.ts";
@@ -6,9 +5,7 @@ import { listCoins } from "./repositories/coin.ts";
 import { getCurrentPrice } from "./clients/coinmarketcap.ts";
 import { savePrice } from "./repositories/price-history.ts";
 
-dotenv.config();
-
-const port = Number(process.env.PORT);
+const port = Number(process.env.PORT ?? 3000);
 const intervalMs = Number(process.env.SYNC_INTERVAL_MS ?? 60000);
 
 if (!Number.isInteger(port) || port < 1 || port > 65535) {
