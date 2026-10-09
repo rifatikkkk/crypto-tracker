@@ -51,3 +51,21 @@ SYNC_INTERVAL_MS=60000
 ## API
 
 Предварительный список маршрутов и правила ответов описаны в [контракте API](docs/api-contract.md). По мере реализации он будет дополнен.
+
+## Запуск через Docker Compose
+
+Создайте локальный `.env` на основе `.env.example` и заполните `API_KEY` и `CMC_API_KEY`.
+Затем запустите:
+
+```bash
+docker compose up --build -d
+```
+
+API будет доступен по адресу `http://localhost:3000`.
+Данные SQLite хранятся в именованном томе `prices_data`.
+
+Остановить сервис:
+
+```bash
+docker compose down
+```

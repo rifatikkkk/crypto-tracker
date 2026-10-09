@@ -1,0 +1,17 @@
+services:
+  api:
+    build: .
+    init: true
+    ports:
+      - "3000:3000"
+    env_file:
+      - .env
+    environment:
+      PORT: "3000"
+      DATABASE_PATH: /app/data/prices.sqlite
+    volumes:
+      - prices_data:/app/data
+    stop_grace_period: 30s
+
+volumes:
+  prices_data:
