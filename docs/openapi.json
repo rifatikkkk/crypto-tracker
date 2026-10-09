@@ -1,0 +1,778 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Crypto Tracker API",
+    "version": "1.0.0",
+    "description": "REST API для отслеживания криптовалют, получения цен из CoinMarketCap и чтения сохранённой истории цен."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000",
+      "description": "Локальный сервер с PORT=3000"
+    }
+  ],
+  "security": [
+    {
+      "BearerAuth": []
+    }
+  ],
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Проверить работу сервиса",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Сервис работает",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Health"
+                },
+                "example": {
+                  "status": "ok"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/coins": {
+      "get": {
+        "summary": "Получить список отслеживаемых монет",
+        "responses": {
+          "200": {
+            "description": "Массив монет; если записей нет, возвращается пустой массив",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Coin"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "cmcId": 1,
+                    "symbol": "BTC",
+                    "name": "Bitcoin",
+                    "createdAt": "2026-10-09T10:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "post": {
+        "summary": "Добавить отслеживаемую монету",
+        "description": "Уникальность проверяется по cmcId. Существование монеты в CoinMarketCap при создании не проверяется.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoinInput"
+              },
+              "example": {
+                "cmcId": 1,
+                "symbol": "BTC",
+                "name": "Bitcoin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Монета создана",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coin"
+                },
+                "example": {
+                  "id": 1,
+                  "cmcId": 1,
+                  "symbol": "BTC",
+                  "name": "Bitcoin",
+                  "createdAt": "2026-10-09T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidCoinData"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/coins/{id}": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CoinId"
+        }
+      ],
+      "get": {
+        "summary": "Получить монету по внутреннему ID",
+        "responses": {
+          "200": {
+            "description": "Монета найдена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coin"
+                },
+                "example": {
+                  "id": 1,
+                  "cmcId": 1,
+                  "symbol": "BTC",
+                  "name": "Bitcoin",
+                  "createdAt": "2026-10-09T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidCoinId"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "patch": {
+        "summary": "Изменить монету",
+        "description": "Текущая реализация требует все три поля: cmcId, symbol и name.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CoinInput"
+              },
+              "example": {
+                "cmcId": 1,
+                "symbol": "BTC",
+                "name": "Bitcoin"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Монета обновлена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Coin"
+                },
+                "example": {
+                  "id": 1,
+                  "cmcId": 1,
+                  "symbol": "BTC",
+                  "name": "Bitcoin",
+                  "createdAt": "2026-10-09T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidCoinIdOrData"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "409": {
+            "$ref": "#/components/responses/Conflict"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Удалить монету и её историю цен",
+        "responses": {
+          "204": {
+            "description": "Монета удалена; тело ответа пустое"
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidCoinId"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    },
+    "/coins/{id}/price": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CoinId"
+        }
+      ],
+      "get": {
+        "summary": "Получить актуальную цену монеты",
+        "description": "Цена запрашивается из CoinMarketCap в USD. Этот запрос сам по себе не сохраняет цену в историю. Параметры запроса не поддерживаются.",
+        "responses": {
+          "200": {
+            "description": "Актуальная цена получена",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CurrentPrice"
+                },
+                "example": {
+                  "coinId": 1,
+                  "cmcId": 1,
+                  "symbol": "BTC",
+                  "currency": "USD",
+                  "price": "65000.25",
+                  "updatedAt": "2026-10-09T10:00:00.000Z"
+                }
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidPriceRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          },
+          "502": {
+            "$ref": "#/components/responses/BadGateway"
+          },
+          "503": {
+            "$ref": "#/components/responses/ServiceUnavailable"
+          },
+          "504": {
+            "$ref": "#/components/responses/GatewayTimeout"
+          }
+        }
+      }
+    },
+    "/coins/{id}/history": {
+      "parameters": [
+        {
+          "$ref": "#/components/parameters/CoinId"
+        }
+      ],
+      "get": {
+        "summary": "Получить сохранённую историю цен",
+        "description": "Возвращает записи из SQLite от новых к старым. Если записей нет, возвращает пустой массив.",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Максимальное число записей. По умолчанию 100.",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Массив записей истории цен",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PriceHistoryItem"
+                  }
+                },
+                "example": [
+                  {
+                    "id": 2,
+                    "coinId": 1,
+                    "price": "65000.25",
+                    "currency": "USD",
+                    "recordedAt": "2026-10-09T11:00:00.000Z"
+                  },
+                  {
+                    "id": 1,
+                    "coinId": 1,
+                    "price": "64950.10",
+                    "currency": "USD",
+                    "recordedAt": "2026-10-09T10:00:00.000Z"
+                  }
+                ]
+              }
+            }
+          },
+          "400": {
+            "$ref": "#/components/responses/InvalidHistoryRequest"
+          },
+          "401": {
+            "$ref": "#/components/responses/Unauthorized"
+          },
+          "404": {
+            "$ref": "#/components/responses/NotFound"
+          },
+          "500": {
+            "$ref": "#/components/responses/ServerError"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Введите значение API_KEY. Swagger добавит заголовок Authorization: Bearer <API_KEY>."
+      }
+    },
+    "parameters": {
+      "CoinId": {
+        "name": "id",
+        "in": "path",
+        "required": true,
+        "description": "Положительный целочисленный внутренний ID монеты",
+        "schema": {
+          "type": "integer",
+          "minimum": 1
+        }
+      }
+    },
+    "schemas": {
+      "Health": {
+        "type": "object",
+        "required": ["status"],
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": ["ok"]
+          }
+        }
+      },
+      "CoinInput": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["cmcId", "symbol", "name"],
+        "properties": {
+          "cmcId": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Положительный безопасный целочисленный ID монеты в CoinMarketCap"
+          },
+          "symbol": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 15,
+            "pattern": "^[A-Z0-9]{2,15}$",
+            "example": "BTC"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100,
+            "description": "Имя не может состоять только из пробелов. Краевые пробелы удаляются перед сохранением.",
+            "example": "Bitcoin"
+          }
+        }
+      },
+      "Coin": {
+        "type": "object",
+        "required": ["id", "cmcId", "symbol", "name", "createdAt"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "cmcId": {
+            "type": "integer",
+            "example": 1
+          },
+          "symbol": {
+            "type": "string",
+            "example": "BTC"
+          },
+          "name": {
+            "type": "string",
+            "example": "Bitcoin"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "CurrentPrice": {
+        "type": "object",
+        "required": [
+          "coinId",
+          "cmcId",
+          "symbol",
+          "currency",
+          "price",
+          "updatedAt"
+        ],
+        "properties": {
+          "coinId": {
+            "type": "integer",
+            "example": 1
+          },
+          "cmcId": {
+            "type": "integer",
+            "example": 1
+          },
+          "symbol": {
+            "type": "string",
+            "example": "BTC"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD"]
+          },
+          "price": {
+            "type": "string",
+            "example": "65000.25"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "PriceHistoryItem": {
+        "type": "object",
+        "required": ["id", "coinId", "price", "currency", "recordedAt"],
+        "properties": {
+          "id": {
+            "type": "integer",
+            "example": 1
+          },
+          "coinId": {
+            "type": "integer",
+            "example": 1
+          },
+          "price": {
+            "type": "string",
+            "example": "65000.25"
+          },
+          "currency": {
+            "type": "string",
+            "enum": ["USD"]
+          },
+          "recordedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "required": ["error"],
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "responses": {
+      "InvalidCoinData": {
+        "description": "Некорректное тело запроса",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "invalidData": {
+                "summary": "Поля отсутствуют или не прошли валидацию",
+                "value": {
+                  "error": "Invalid coin data"
+                }
+              },
+              "invalidJson": {
+                "summary": "Некорректный JSON",
+                "value": {
+                  "error": "Invalid JSON"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InvalidCoinId": {
+        "description": "Некорректный внутренний ID монеты",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Invalid coin ID"
+            }
+          }
+        }
+      },
+      "InvalidCoinIdOrData": {
+        "description": "Некорректный ID или тело запроса",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "invalidData": {
+                "summary": "Некорректный ID или поля монеты",
+                "value": {
+                  "error": "Invalid coin ID or data"
+                }
+              },
+              "invalidJson": {
+                "summary": "Некорректный JSON",
+                "value": {
+                  "error": "Invalid JSON"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InvalidPriceRequest": {
+        "description": "Некорректный ID или неподдерживаемые параметры запроса",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "invalidId": {
+                "summary": "Некорректный ID",
+                "value": {
+                  "error": "Invalid coin ID"
+                }
+              },
+              "unsupportedQuery": {
+                "summary": "Передан параметр запроса",
+                "value": {
+                  "error": "Query parameters are not supported"
+                }
+              }
+            }
+          }
+        }
+      },
+      "InvalidHistoryRequest": {
+        "description": "Некорректный ID, limit или неподдерживаемый параметр запроса",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "invalidId": {
+                "summary": "Некорректный ID",
+                "value": {
+                  "error": "Invalid coin ID"
+                }
+              },
+              "invalidLimit": {
+                "summary": "Недопустимый limit",
+                "value": {
+                  "error": "Invalid limit"
+                }
+              },
+              "unsupportedQuery": {
+                "summary": "Неподдерживаемый параметр",
+                "value": {
+                  "error": "Unsupported query parameter"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Unauthorized": {
+        "description": "Отсутствует или неверен Bearer API Key",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Invalid or missing API key"
+            }
+          }
+        }
+      },
+      "NotFound": {
+        "description": "Монета не найдена",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Coin not found"
+            }
+          }
+        }
+      },
+      "Conflict": {
+        "description": "Монета с таким cmcId уже существует",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "Coin already exists"
+            }
+          }
+        }
+      },
+      "ServerError": {
+        "description": "Внутренняя ошибка или неверная конфигурация сервиса",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "internalError": {
+                "summary": "Внутренняя ошибка",
+                "value": {
+                  "error": "Internal server error"
+                }
+              },
+              "missingApiKey": {
+                "summary": "Не настроен API Key сервиса",
+                "value": {
+                  "error": "API key is not configured"
+                }
+              },
+              "missingCmcApiKey": {
+                "summary": "Не настроен API Key CoinMarketCap",
+                "value": {
+                  "error": "CoinMarketCap API key is not configured"
+                }
+              },
+              "invalidCmcTimeout": {
+                "summary": "Некорректный таймаут CoinMarketCap",
+                "value": {
+                  "error": "Invalid CoinMarketCap timeout configuration"
+                }
+              }
+            }
+          }
+        }
+      },
+      "BadGateway": {
+        "description": "Ошибка запроса к CoinMarketCap или некорректный ответ",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "examples": {
+              "requestFailed": {
+                "summary": "Запрос к CoinMarketCap не выполнен",
+                "value": {
+                  "error": "Failed to fetch price from CoinMarketCap"
+                }
+              },
+              "apiError": {
+                "summary": "CoinMarketCap вернул ошибку в ответе",
+                "value": {
+                  "error": "CoinMarketCap returned an error"
+                }
+              },
+              "invalidResponse": {
+                "summary": "Некорректная структура ответа",
+                "value": {
+                  "error": "Invalid response from CoinMarketCap"
+                }
+              },
+              "noCoinData": {
+                "summary": "Нет данных для выбранной монеты",
+                "value": {
+                  "error": "CoinMarketCap returned no data for this coin"
+                }
+              },
+              "invalidPrice": {
+                "summary": "Некорректные данные цены",
+                "value": {
+                  "error": "Invalid price data from CoinMarketCap"
+                }
+              }
+            }
+          }
+        }
+      },
+      "ServiceUnavailable": {
+        "description": "Превышен лимит запросов CoinMarketCap",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "CoinMarketCap rate limit exceeded"
+            }
+          }
+        }
+      },
+      "GatewayTimeout": {
+        "description": "Истёк таймаут запроса к CoinMarketCap",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            },
+            "example": {
+              "error": "CoinMarketCap request timed out"
+            }
+          }
+        }
+      }
+    }
+  }
+}
